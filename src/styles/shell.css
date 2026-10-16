@@ -1,0 +1,241 @@
+.app {
+  /* Sized and scaled by scale.js to fill the viewport at any resolution. */
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  transform-origin: 0 0;
+  display: flex;
+  overflow: hidden;
+  background: var(--rail);
+  /* fixed-position overlays (menus, modals) are contained by this element */
+  contain: layout paint;
+}
+.rail {
+  width: 46px;
+  flex: none;
+  background: var(--rail);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 84px 0 22px;
+  border-right: 1px solid #262626;
+  z-index: 2;
+}
+.rail-mark {
+  position: absolute;
+  top: 26px;
+  left: 50%;
+  width: 26px;
+  height: 26px;
+  transform: translateX(-50%);
+  opacity: 0.92;
+}
+.rail-mark svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.rail-mark rect {
+  fill: #2f2a29;
+}
+.rail-mark .d {
+  fill: #433a38;
+}
+.rail-mark .w {
+  fill: var(--cat, #e5574f);
+  transition: fill 0.6s;
+}
+.rail-mark .h {
+  fill: #fff;
+  stroke: #fff;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.rail {
+  position: relative;
+}
+.rail-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+/* quiet tooltips with the shortcut, to the right of the rail */
+.rail-btn[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  padding: 5px 9px;
+  border-radius: 7px;
+  background: #1b1817;
+  color: #e9e1dd;
+  font: 500 11.5px/1.2 var(--font);
+  white-space: nowrap;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  transform: translate(-4px, -50%);
+  pointer-events: none;
+  transition: opacity 0.16s, transform 0.2s var(--ease);
+  z-index: 20;
+}
+.rail-btn[data-tip]:hover::after {
+  opacity: 1;
+  transform: translate(0, -50%);
+  transition-delay: 0.35s;
+}
+.rail-top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.rail-btn {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  font-size: 17px;
+  color: #a9a6a6;
+  transition: background 0.15s, color 0.15s;
+}
+.rail-btn:hover {
+  color: #e8e8e8;
+  background: rgba(255, 255, 255, 0.05);
+}
+.rail-btn.on {
+  color: #f2f2f2;
+  background: rgba(255, 255, 255, 0.09);
+}
+.rail-btn.live:not(.on) {
+  color: var(--cat);
+}
+.rail-badge {
+  position: absolute;
+  top: 29px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #151515;
+  color: #fff;
+  font: 700 9px/1 var(--mono);
+  padding: 3px 4px;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.rail-btn.live .rail-badge + * {
+  display: none;
+}
+.rail-btn[data-view='timer'].live:not(.on) {
+  margin-bottom: 10px;
+}
+
+.views {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}
+.view {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  animation: view-in 0.22s var(--ease);
+}
+@keyframes view-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+.view[data-v='timer'] {
+  animation: none;
+}
+/* a lazily loaded view shows a soft pulse instead of a blank pane */
+.view.loading::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 34px;
+  height: 34px;
+  margin: -17px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  border-top-color: rgba(255, 255, 255, 0.4);
+  animation: view-spin 0.9s linear infinite;
+  animation-delay: 0.15s;
+  opacity: 0;
+  animation-fill-mode: both;
+}
+@keyframes view-spin {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: rotate(360deg);
+  }
+}
+.timer-host {
+  width: 380px;
+  flex: none;
+  display: flex;
+}
+.right-host {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translate(-50%, 16px);
+  background: #1d1d1d;
+  color: #eee;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 9px 14px;
+  border-radius: 999px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.25s var(--ease);
+  z-index: 100;
+}
+.toast.in {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  pointer-events: auto;
+}
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  white-space: nowrap;
+}
+.toast button {
+  margin: -4px -6px -4px 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font: inherit;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  transition: background 0.2s, transform 0.15s;
+}
+.toast button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+.toast button:active {
+  transform: scale(0.96);
+}
+.toast button[hidden] {
+  display: none;
+}

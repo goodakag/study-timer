@@ -1,0 +1,14 @@
+{
+  "name": "study-timer",
+  "private": true,
+  "version": "1.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5317",
+    "build": "vite build",
+    "preview": "vite preview --port 5318"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}

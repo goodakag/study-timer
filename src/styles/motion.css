@@ -1,0 +1,634 @@
+/* Motion layer. Everything here animates transform/opacity (compositor only)
+   unless noted, so it stays smooth and cheap. */
+
+/* ---------- timer pane ---------- */
+.tp {
+  overflow: hidden;
+  transition: background-color 0.7s var(--ease), --c 0.6s var(--ease);
+}
+.tp-head,
+.tp-mid,
+.tp-foot {
+  position: relative;
+  z-index: 1;
+}
+.tp-tune {
+  z-index: 2;
+}
+.wash {
+  position: absolute;
+  z-index: 0;
+  border-radius: 50%;
+  background: var(--bg);
+  pointer-events: none;
+  animation: wash 0.85s var(--out) forwards;
+}
+@keyframes wash {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  65% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+.tp.phase-in .tp-head {
+  animation: rise 0.55s var(--out) both;
+}
+.tp.phase-in .tp-mid {
+  animation: rise 0.6s 0.05s var(--out) both;
+}
+.tp.phase-in .tp-foot {
+  animation: rise-up 0.6s 0.1s var(--out) both;
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.985);
+  }
+}
+@keyframes rise-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+  }
+}
+
+/* rolling digits */
+.tp-time {
+  display: inline-flex;
+}
+.rc {
+  display: inline-block;
+  min-width: 0.6em;
+  text-align: center;
+}
+.rc.colon {
+  min-width: 0.3em;
+}
+.rc.roll {
+  animation: roll 0.32s var(--out);
+}
+@keyframes roll {
+  from {
+    opacity: 0.35;
+    transform: translateY(-0.28em);
+  }
+}
+
+/* control icons morph when they change */
+.ctrl .ic.swap {
+  animation: icon-in 0.42s var(--spring);
+}
+@keyframes icon-in {
+  from {
+    opacity: 0;
+    transform: scale(0.4) rotate(-40deg);
+  }
+}
+.ctrl {
+  box-shadow: 0 0 0 0 transparent;
+  transition: transform 0.2s var(--spring), filter 0.15s, background 0.5s, box-shadow 0.3s;
+}
+.ctrl:hover {
+  transform: translateY(-1px) scale(1.04);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+}
+.ctrl:active {
+  transform: scale(0.9);
+  transition-duration: 0.08s;
+}
+.tp:not(.paused)[data-phase='focus'] .c-main {
+  animation: breathe-btn 4s ease-in-out infinite;
+}
+@keyframes breathe-btn {
+  50% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--c) 12%, transparent);
+  }
+}
+
+/* streak dots */
+.dots i.pop {
+  animation: dot-pop 0.7s var(--spring) both;
+  animation-delay: 0.25s;
+}
+@keyframes dot-pop {
+  0% {
+    transform: scale(0.2);
+  }
+  60% {
+    transform: scale(1.7);
+  }
+}
+
+/* dial: calm, no bounce */
+.dial.interactive:hover .hand line,
+.dial.dragging .hand line {
+  stroke-width: 3.6;
+}
+.dial .hand line {
+  transition: stroke 0.5s, stroke-width 0.2s;
+}
+
+/* start button */
+.start-btn {
+  position: relative;
+  overflow: hidden;
+}
+.start-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.28) 50%, transparent 70%);
+  transform: translateX(-120%);
+}
+.start-btn:hover::after {
+  transform: translateX(120%);
+  transition: transform 0.7s var(--ease);
+}
+
+/* suggestions stagger */
+.suggest.open .sug {
+  animation: fade-up 0.28s var(--out) both;
+  animation-delay: calc(var(--i, 0) * 24ms);
+}
+
+/* ---------- shared keyframes ---------- */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+
+/* ---------- rail ---------- */
+.rail {
+  position: relative;
+}
+.rail-ind {
+  position: absolute;
+  left: 7px;
+  top: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.09);
+  transition: transform 0.45s var(--spring-soft), opacity 0.2s;
+  pointer-events: none;
+}
+.rail-btn.on {
+  background: transparent;
+}
+.rail-btn .ic {
+  transition: transform 0.25s var(--spring);
+}
+.rail-btn:hover .ic {
+  transform: scale(1.1);
+}
+.rail-btn:active .ic {
+  transform: scale(0.88);
+}
+.rail-badge {
+  animation: pop-in 0.3s var(--spring);
+}
+
+/* ---------- views ---------- */
+.view {
+  animation: view-in 0.38s var(--out);
+}
+@keyframes view-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.995);
+  }
+}
+
+/* right pane switcher */
+.rp-switch {
+  isolation: isolate;
+}
+.rp-switch .sw-ind {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 32px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  transition: transform 0.4s var(--spring-soft);
+  z-index: -1;
+}
+.rp-switch button.on::after {
+  animation: pop-in 0.3s var(--spring);
+}
+.rp-notes,
+.rp-cal {
+  transition: opacity 0.3s var(--ease), transform 0.4s var(--out), visibility 0.3s;
+}
+.rp[data-tab='notes'] .rp-cal {
+  transform: translateX(14px);
+}
+.rp[data-tab='calendar'] .rp-notes {
+  transform: translateX(-14px);
+}
+
+/* staggered lists */
+.ncard,
+.lday,
+.cat-row,
+.pf-cat {
+  animation: fade-up 0.4s var(--out) both;
+  animation-delay: calc(min(var(--i, 0), 12) * 28ms);
+}
+.ncard {
+  transition: background 0.2s, transform 0.25s var(--spring);
+}
+.ncard:hover {
+  transform: translateX(2px);
+}
+.lrow {
+  transition: background 0.15s, transform 0.25s var(--spring);
+}
+.lrow:hover {
+  transform: translateX(2px);
+}
+.card {
+  animation: fade-up 0.45s var(--out) both;
+  animation-delay: calc(var(--i, 0) * 50ms);
+}
+.st-content.anim {
+  animation: fade-up 0.35s var(--out) both;
+}
+.st-item {
+  transition: background 0.25s var(--ease), color 0.2s, transform 0.2s var(--spring);
+}
+.st-item:active {
+  transform: scale(0.98);
+}
+.an-chip {
+  transition: background 0.25s, transform 0.2s var(--spring);
+}
+.an-chip:active,
+.wd:active,
+.sq:active,
+.chip:active,
+.toggle-chip:active,
+.pill-btn:active,
+.cat-pill:active {
+  transform: scale(0.94);
+}
+.wd,
+.sq,
+.chip,
+.toggle-chip,
+.pill-btn {
+  transition: background 0.2s, transform 0.2s var(--spring);
+}
+.wd.on {
+  animation: pop-in 0.3s var(--spring);
+}
+.radio {
+  transition: background 0.2s, box-shadow 0.2s, transform 0.3s var(--spring);
+}
+.chip.on .radio,
+.toggle-chip.on .radio {
+  transform: scale(1.08);
+}
+.chip.on .radio::after,
+.toggle-chip.on .radio::after {
+  animation: pop-in 0.3s var(--spring);
+}
+
+/* analytics bars grow up */
+.col-fill {
+  height: 100%;
+  display: flex;
+  flex-direction: column-reverse;
+  transform-origin: bottom;
+  animation: grow 0.7s var(--out) both;
+  animation-delay: calc(min(var(--i, 0), 31) * 14ms + 0.1s);
+}
+@keyframes grow {
+  from {
+    transform: scaleY(0);
+  }
+}
+.avg-line {
+  animation: fade-in 0.6s 0.5s both;
+}
+
+/* calendar */
+.blk {
+  animation: blk-in 0.45s var(--out) both;
+  animation-delay: calc(min(var(--i, 0), 14) * 25ms);
+  transform-origin: top;
+}
+@keyframes blk-in {
+  from {
+    opacity: 0;
+    transform: scaleY(0.6) translateY(-4px);
+  }
+}
+.blk:hover {
+  filter: brightness(1.1);
+  transform: translateX(-1px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+}
+.blk.planned:hover {
+  box-shadow: inset 3px 0 0 #d9d9d9, 0 6px 18px rgba(0, 0, 0, 0.3);
+}
+.blk.live {
+  background: color-mix(in srgb, var(--c) 70%, #6e1818);
+}
+.blk.live::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -24px;
+  right: 0;
+  background: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0 6px, transparent 6px 12px);
+  animation: stripes 1.2s linear infinite;
+}
+.blk.live.brk {
+  background: #5e5c5c;
+}
+@keyframes stripes {
+  to {
+    transform: translateX(16.97px);
+  }
+}
+.now-line::after {
+  content: '';
+  position: absolute;
+  left: -4px;
+  top: -4.5px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: ping 2.4s var(--out) infinite;
+}
+@keyframes ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  70%,
+  100% {
+    transform: scale(2.8);
+    opacity: 0;
+  }
+}
+.cal-ghost {
+  animation: pop-in 0.18s var(--out);
+}
+.mini-view {
+  transition: left 0.08s linear;
+}
+.fab {
+  animation: pop-in 0.5s 0.15s var(--spring) both;
+}
+.fab .ic {
+  transition: transform 0.35s var(--spring);
+}
+.fab:hover .ic {
+  transform: rotate(90deg);
+}
+
+/* ---------- menus & modals ---------- */
+.menu {
+  transform: scale(0.92) translateY(-4px);
+  transition: opacity 0.16s, transform 0.32s var(--spring-soft);
+}
+.menu.in > * {
+  animation: fade-up 0.26s var(--out) both;
+  animation-delay: calc(var(--i, 0) * 18ms);
+}
+.menu-item .menu-icon {
+  transition: transform 0.25s var(--spring);
+}
+.menu-item:hover .menu-icon {
+  transform: translateX(2px) scale(1.08);
+}
+.modal-backdrop {
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  transition: opacity 0.25s;
+}
+.modal {
+  transform: translateY(16px) scale(0.94);
+  transition: opacity 0.2s, transform 0.42s var(--spring-soft);
+}
+.modal-root.out .modal {
+  transform: translateY(8px) scale(0.97);
+  transition: opacity 0.16s, transform 0.2s var(--ease);
+}
+.modal-root.in .modal-body > * {
+  animation: fade-up 0.35s 0.06s var(--out) both;
+}
+.mood {
+  transition: background 0.2s, box-shadow 0.2s, transform 0.3s var(--spring);
+}
+.mood:hover {
+  transform: translateY(-2px);
+}
+.mood:active {
+  transform: scale(0.95);
+}
+.mood.on .mood-emoji {
+  animation: emoji-pop 0.5s var(--spring);
+}
+.mood-emoji {
+  transition: transform 0.3s var(--spring);
+}
+.mood:hover .mood-emoji {
+  transform: scale(1.12) rotate(-6deg);
+}
+@keyframes emoji-pop {
+  40% {
+    transform: scale(1.4) rotate(8deg);
+  }
+}
+.modal-x {
+  transition: background 0.15s, transform 0.3s var(--spring);
+}
+.modal-x:hover {
+  transform: rotate(90deg);
+}
+.sw.on {
+  animation: pop-in 0.3s var(--spring);
+}
+.toast {
+  transition: opacity 0.2s, transform 0.4s var(--spring-soft);
+}
+.btn {
+  transition: filter 0.15s, transform 0.25s var(--spring), background 0.2s, box-shadow 0.2s;
+}
+.btn:active {
+  transform: scale(0.95);
+  transition-duration: 0.08s;
+}
+.switch i::after {
+  transition: transform 0.35s var(--spring), width 0.2s;
+}
+.switch:active i::after {
+  width: 20px;
+}
+.switch input:checked + i::after {
+  transform: translateX(14px);
+}
+.switch:active input:checked + i::after {
+  transform: translateX(10px);
+}
+.intent,
+.note-area,
+.field input,
+.field textarea {
+  transition: background 0.2s, box-shadow 0.25s;
+}
+
+.reduce-motion .wash,
+.reduce-motion .blk.live::before,
+.reduce-motion .now-line::after {
+  display: none;
+}
+.cal-blocks.static .blk {
+  animation: none;
+}
+
+/* ---------- break: inline reflection ---------- */
+.rf-card {
+  margin: 0 14px 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--c) 9%, #383636);
+  box-shadow: inset 3px 0 0 var(--c);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.rf-card.enter {
+  animation: fade-up 0.5s var(--out) both;
+}
+.rf-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.rf-text small {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--c) 70%, #fff);
+}
+.rf-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #f2f2f2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rf-meta {
+  font-size: 9.5px;
+  color: #9d9a9a;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.rf-moods {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+.rf-moods button {
+  width: 66px;
+  height: 52px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #bdbaba;
+  transition: background 0.2s, box-shadow 0.2s, transform 0.3s var(--spring), color 0.2s;
+}
+.rf-moods button span {
+  font-size: 19px;
+  line-height: 1;
+  filter: grayscale(0.7);
+  opacity: 0.75;
+  transition: filter 0.2s, opacity 0.2s, transform 0.35s var(--spring);
+}
+.rf-moods button:hover {
+  background: rgba(255, 255, 255, 0.09);
+  transform: translateY(-1px);
+}
+.rf-moods button:hover span {
+  transform: scale(1.12);
+}
+.rf-moods button:active {
+  transform: scale(0.94);
+}
+.rf-moods button.on {
+  background: color-mix(in srgb, var(--c) 24%, transparent);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--c) 80%, transparent);
+  color: #fff;
+}
+.rf-moods button.on span {
+  filter: none;
+  opacity: 1;
+  animation: emoji-pop 0.5s var(--spring);
+}
+
+/* menu hint (e.g. break length) */
+.menu-hint {
+  font-size: 11px;
+  font-weight: 600;
+  color: #9a9595;
+}
+
+/* break over: gently nudge toward starting the next session */
+.tp[data-phase='breakOver'] .c-main {
+  animation: nudge 2.2s ease-in-out infinite;
+}
+@keyframes nudge {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.32);
+  }
+  50% {
+    box-shadow: 0 0 0 12px rgba(255, 255, 255, 0);
+  }
+}
+.tp[data-phase='breakOver'] .tp-time {
+  color: #d8d8d8;
+}
+.tp-breaklabel {
+  transition: color 0.4s;
+}
+.tp[data-phase='breakOver'] .tp-breaklabel {
+  color: #fff;
+  font-weight: 600;
+}

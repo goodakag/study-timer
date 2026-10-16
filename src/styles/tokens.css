@@ -1,0 +1,46 @@
+/* Registered so category colour changes interpolate smoothly everywhere. */
+@property --c {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #df6363;
+}
+@property --cat {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #df6363;
+}
+:root {
+  color-scheme: dark;
+  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+
+  --rail: #2b2b2b;
+  --pane: #2f2f2f;
+  --pane-2: #323232;
+  --list: #2a2a2a;
+  --field: #363636;
+  --raised: #3a3a3a;
+  --line: #3a3a3a;
+  --line-soft: #343434;
+  --menu: #3a3434;
+
+  --text: #ececec;
+  --text-2: #b9b6b6;
+  --muted: #8a8687;
+  --faint: #6a6767;
+
+  --accent: #d94344;
+  --accent-hi: #e34d4e;
+  --green: #6eae55;
+  --red-delta: #e06a6a;
+
+  --cat: #df6363;
+  --r-sm: 6px;
+  --r: 10px;
+  --r-lg: 14px;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --spring: cubic-bezier(0.34, 1.4, 0.5, 1);
+  --spring-soft: cubic-bezier(0.3, 1.25, 0.5, 1);
+  --out: cubic-bezier(0.16, 1, 0.3, 1);
+  transition: --cat 0.6s var(--ease);
+}

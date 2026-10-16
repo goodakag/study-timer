@@ -1,0 +1,7 @@
+node_modules/
+dist/
+dist-standalone/
+.claude/
+*.log
+.DS_Store
+artifact/

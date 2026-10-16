@@ -1,0 +1,902 @@
+/* ==========================================================================
+   Focus mode (timer running).
+   Focus: black, one number, one button.  Break: light, calm, a ring.
+   Motion is reserved for a few moments: entering, the focus -> break handoff,
+   and the quiet tray. Everything else stays still.
+   ========================================================================== */
+
+/* ---------- classic pane: focus-mode toggle + sound icon ---------- */
+.tp-zen {
+  display: none;
+  position: absolute;
+  top: 30px;
+  right: 56px;
+  width: 26px;
+  height: 26px;
+  font-size: 15px;
+  z-index: 2;
+}
+.tp:not([data-phase='idle']) .tp-zen {
+  display: grid;
+}
+.tp[data-phase='focusOver'] .tp-zen,
+.tp[data-phase='focusOver'] .tp-tune {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.7);
+  color: #fff;
+}
+.tp[data-phase^='break'] .tp-zen,
+.tp[data-phase^='break'] .tp-tune {
+  background: rgba(0, 0, 0, 0.2);
+}
+.tp-tune.muted {
+  color: #ff9d9d;
+}
+.tp-reflect {
+  display: none !important;
+}
+.ctrls .ctrl[hidden] {
+  display: none !important;
+}
+
+/* ---------- focus screen shell ---------- */
+.fs {
+  --ox: 50%;
+  --oy: 70%;
+  /* break palette (Cozy by default): warm Session taupe tinted by the category */
+  --b-bg: color-mix(in srgb, var(--c) 14%, #3a3331);
+  --b-ink: #f3ece8;
+  --b-dim: rgba(243, 236, 232, 0.62);
+  --b-track: rgba(255, 255, 255, 0.08);
+  --b-ring: color-mix(in srgb, var(--c) 70%, #f3ece8);
+  --b-btn: #f3ece8;
+  --b-btn-ink: #2c2624;
+  --b-chip: rgba(255, 255, 255, 0.07);
+  --b-chip-on: rgba(255, 255, 255, 0.92);
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  overflow: hidden;
+  background: #0c0c0c;
+  color: #f2f2f2;
+  /* opens as a circle from where you clicked, closes into the dial */
+  clip-path: circle(0px at var(--ox) var(--oy));
+  transition: clip-path 0.85s cubic-bezier(0.65, 0, 0.35, 1);
+}
+.fs.in {
+  clip-path: circle(150% at var(--ox) var(--oy));
+}
+.fs.closing {
+  transition-duration: 0.75s;
+  transition-timing-function: cubic-bezier(0.55, 0, 0.45, 1);
+}
+.fs.closing .fs-f,
+.fs.closing .fsb-in,
+.fs.closing .fs-tools {
+  opacity: 0;
+  transform: scale(0.94);
+  transition: opacity 0.3s var(--ease), transform 0.6s var(--ease);
+}
+.fs[data-theme='light'] {
+  --b-bg: #ebe5df;
+  --b-ink: #2a2421;
+  --b-dim: #6f6761;
+  --b-track: rgba(0, 0, 0, 0.07);
+  --b-ring: #3a312d;
+  --b-btn: #2a2421;
+  --b-btn-ink: #fff;
+  --b-chip: rgba(0, 0, 0, 0.05);
+  --b-chip-on: #fff;
+}
+.fs[data-theme='gray'] {
+  --b-bg: #505050;
+  --b-ink: #fff;
+  --b-dim: rgba(255, 255, 255, 0.65);
+  --b-track: rgba(255, 255, 255, 0.12);
+  --b-ring: #fff;
+  --b-btn: #fff;
+  --b-btn-ink: #333;
+  --b-chip: rgba(0, 0, 0, 0.14);
+  --b-chip-on: rgba(255, 255, 255, 0.9);
+}
+
+/* analog focus timer */
+.fs-analog {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  margin: 14px 0 30px;
+}
+.fs[data-style='analog'] .fs-analog {
+  display: flex;
+}
+.fs[data-style='analog'] .fs-time {
+  display: none;
+}
+.fs-dial {
+  width: 340px;
+  height: 340px;
+  --disc: #1b1b1b;
+  --wedge: #ededed;
+  --hand: #ffffff;
+  --tick-q: #f2f2f2;
+  --tick-f: #bdbdbd;
+  --tick: #4d4d4d;
+}
+.fs-dial .hub {
+  fill: #fff;
+}
+.fs.paused .fs-dial {
+  opacity: 0.4;
+  transition: opacity 0.6s;
+}
+.fs-small {
+  margin-top: 16px;
+  font-size: 22px;
+  font-weight: 400;
+  color: #9a9a9a;
+  font-variant-numeric: tabular-nums;
+}
+.fs.in .fs-analog {
+  animation: fs-rise 0.9s 0.12s var(--out) both;
+}
+
+.fs-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 3;
+  background: rgba(255, 255, 255, 0.07);
+  transition: opacity 0.5s;
+}
+.fs-progress i {
+  display: block;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.7);
+  transform-origin: left;
+  transform: scaleX(0);
+  transition: transform 1s linear;
+}
+.fs[data-kind='break'] .fs-progress {
+  opacity: 0;
+}
+
+/* ---------- focus ---------- */
+.fs-f {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 24px 60px;
+  transition: opacity 0.5s var(--ease), transform 0.8s var(--out);
+}
+.fs[data-kind='break'] .fs-f {
+  opacity: 0;
+  transform: scale(0.96);
+  pointer-events: none;
+}
+.fs.in .fs-label {
+  animation: fs-rise 0.8s 0.05s var(--out) both;
+}
+.fs.in .fs-time {
+  animation: fs-rise 0.9s 0.12s var(--out) both;
+}
+.fs.in .fs-actions {
+  animation: fs-rise 0.9s 0.22s var(--out) both;
+}
+@keyframes fs-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+.fs-label {
+  min-height: 22px;
+  max-width: 640px;
+  font-size: 17px;
+  color: #8d8d8d;
+  text-align: center;
+  overflow-wrap: anywhere;
+  transition: color 0.4s;
+}
+.fs[data-phase='focusOver'] .fs-label {
+  color: #d6d6d6;
+}
+.fs-time {
+  margin: 12px 0 34px;
+  font-size: 168px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+  color: #fafafa;
+  transition: opacity 0.6s var(--ease);
+}
+.fs.paused .fs-time {
+  opacity: 0.32;
+}
+.fs-actions {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.fs-btn {
+  width: 210px;
+  height: 58px;
+  border-radius: 6px;
+  background: #f4f4f4;
+  color: #111;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  box-shadow: 0 6px 0 #b9b9b9;
+  transition: transform 0.14s ease, box-shadow 0.14s ease, background 0.2s;
+}
+.fs-btn:hover {
+  background: #fff;
+}
+.fs-btn.pressed,
+.fs-btn:active {
+  transform: translateY(6px);
+  box-shadow: 0 0 0 #b9b9b9;
+}
+.fs-btn.swap {
+  animation: fs-label 0.4s var(--out);
+}
+@keyframes fs-label {
+  from {
+    color: transparent;
+  }
+}
+/* "Finish" appears beside TAKE A BREAK only when time is up */
+.fs-alt {
+  position: absolute;
+  left: calc(100% + 14px);
+  top: 0;
+  height: 58px;
+  padding: 0 22px;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #d8d8d8;
+  white-space: nowrap;
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.22);
+  opacity: 0;
+  transform: translateX(-8px);
+  pointer-events: none;
+  transition: opacity 0.4s var(--ease), transform 0.5s var(--out), background 0.2s, color 0.2s;
+}
+.fs[data-phase='focusOver'] .fs-alt {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+.fs-alt:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+}
+
+/* ---------- break (light) ---------- */
+.fs-b {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  background: var(--b-bg);
+  color: var(--b-ink);
+  clip-path: circle(0% at 50% 50%);
+  transition: clip-path 0.95s cubic-bezier(0.65, 0, 0.35, 1);
+}
+.fs[data-kind='break'] .fs-b {
+  clip-path: circle(75% at 50% 50%);
+}
+.fsb-in {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* leave room for the tray at the bottom */
+  padding: 0 24px 76px;
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.5s var(--ease), transform 0.8s var(--out);
+}
+.fs[data-kind='break'] .fsb-in {
+  opacity: 1;
+  transform: none;
+  transition-delay: 0.45s;
+}
+.fs.celebrate[data-kind='break'] .fsb-in {
+  transition-delay: 2.8s;
+}
+.fsb-kind {
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--b-dim);
+  transition: color 0.4s;
+}
+.fs[data-phase='breakOver'] .fsb-kind {
+  color: var(--b-ink);
+}
+.fsb-ring {
+  position: relative;
+  width: 264px;
+  height: 264px;
+  margin: 16px 0 12px;
+}
+.fsb-ring svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+.fsb-track,
+.fsb-bar {
+  fill: none;
+  stroke-width: 2.2;
+}
+.fsb-track {
+  stroke: var(--b-track);
+}
+.fsb-bar {
+  stroke: var(--b-ring);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s linear;
+}
+.fsb-time {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 68px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.fs[data-phase='breakOver'] .fsb-time {
+  font-size: 52px;
+}
+.fsb-next {
+  font-size: 15px;
+  color: var(--b-dim);
+  text-align: center;
+  max-width: 520px;
+  overflow-wrap: anywhere;
+}
+.fs-mood {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 18px;
+  padding: 4px 4px 4px 14px;
+  border-radius: 999px;
+  background: var(--b-chip);
+  font-size: 13px;
+  color: var(--b-dim);
+}
+.fs-mood span {
+  margin-right: 6px;
+}
+.fs-mood button {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  filter: grayscale(1);
+  opacity: 0.55;
+  transition: opacity 0.2s, filter 0.2s, background 0.2s, transform 0.25s var(--spring);
+}
+.fs-mood button:hover {
+  opacity: 1;
+  filter: none;
+  transform: scale(1.08);
+}
+.fs-mood button.on {
+  opacity: 1;
+  filter: none;
+  background: var(--b-chip-on);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+.fsb-btn {
+  margin-top: 24px;
+  height: 50px;
+  padding: 0 26px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 999px;
+  background: var(--b-btn);
+  color: var(--b-btn-ink);
+  font-size: 15px;
+  font-weight: 600;
+  transition: transform 0.2s var(--ease), box-shadow 0.25s, background 0.2s;
+}
+.fsb-btn .ic {
+  font-size: 16px;
+  transition: transform 0.25s var(--ease);
+}
+.fsb-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.16);
+}
+.fsb-btn:hover .ic {
+  transform: translateX(3px);
+}
+.fsb-btn:active {
+  transform: scale(0.97);
+}
+.fs[data-phase='breakOver'] .fsb-btn {
+  animation: soft-glow 2.8s ease-in-out infinite;
+}
+@keyframes soft-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--b-btn) 35%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 12px color-mix(in srgb, var(--b-btn) 0%, transparent);
+  }
+}
+
+/* ---------- focus -> break handoff ---------- */
+.fs-done {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding-bottom: 40px;
+  color: var(--b-ink);
+  opacity: 0;
+  pointer-events: none;
+}
+/* strictly one thing at a time: the colour fills the screen, then the check
+   draws, holds, and is completely gone before the break content appears */
+.fs.celebrate .fs-done {
+  animation: done 2s var(--ease) 0.75s both;
+}
+@keyframes done {
+  0% {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  16% {
+    opacity: 1;
+    transform: none;
+  }
+  80% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+}
+.fs-done svg {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 6px;
+  fill: none;
+  stroke: var(--b-ink);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.fs-done circle {
+  stroke-dasharray: 151;
+  stroke-dashoffset: 151;
+}
+.fs-done path {
+  stroke-dasharray: 34;
+  stroke-dashoffset: 34;
+}
+.fs.celebrate .fs-done circle {
+  animation: draw 0.7s 0.85s var(--ease) forwards;
+}
+.fs.celebrate .fs-done path {
+  animation: draw 0.45s 1.35s var(--ease) forwards;
+}
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.fs-done b {
+  font-size: 22px;
+  font-weight: 600;
+}
+.fs-done-sub {
+  font-size: 14px;
+  color: var(--b-dim);
+  max-width: 480px;
+  text-align: center;
+}
+
+/* ---------- quiet tray (appears on mouse move) ---------- */
+.fs-tools {
+  position: absolute;
+  left: 50%;
+  bottom: 28px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 5px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  opacity: 0;
+  transform: translate(-50%, 8px);
+  pointer-events: none;
+  transition: opacity 0.5s var(--ease), transform 0.5s var(--out), background 0.6s;
+}
+.app.awake .fs-tools,
+.fs-tools:focus-within {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  pointer-events: auto;
+}
+.fs-tools button {
+  height: 32px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.72);
+  white-space: nowrap;
+  transition: background 0.2s, color 0.2s;
+}
+.fs-tools button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+.fs-tools .ic {
+  font-size: 14px;
+}
+.fs-tools .ic-only {
+  width: 32px;
+  padding: 0;
+  justify-content: center;
+}
+.fs-tools i {
+  width: 1px;
+  height: 18px;
+  margin: 0 5px;
+  background: rgba(255, 255, 255, 0.1);
+}
+.fs-tools .danger:hover {
+  color: #ff9a9a;
+}
+.fs[data-kind='break'] .fs-tools {
+  background: var(--b-chip);
+}
+.fs[data-kind='break'] .fs-tools button {
+  color: var(--b-dim);
+}
+.fs[data-kind='break'] .fs-tools button:hover {
+  background: var(--b-chip);
+  color: var(--b-ink);
+}
+.fs[data-kind='break'] .fs-tools i {
+  background: var(--b-track);
+}
+
+/* ---------- home: Focus / Short Break / Long Break (Session-styled) ---------- */
+.mode-tabs {
+  position: relative;
+  display: none;
+  padding: 3px;
+  margin-bottom: 18px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.24);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+.tp[data-phase='idle'] .mode-tabs {
+  display: inline-flex;
+}
+.mode-tabs button {
+  position: relative;
+  z-index: 1;
+  height: 26px;
+  padding: 0 13px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.55);
+  transition: color 0.25s;
+  white-space: nowrap;
+}
+.mode-tabs button:hover {
+  color: rgba(255, 255, 255, 0.85);
+}
+.mode-tabs button.on {
+  color: #fff;
+}
+.mode-ind {
+  position: absolute;
+  top: 3px;
+  left: 0;
+  height: 26px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--c) 55%, #4a4444);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  transition: transform 0.4s var(--spring-soft), width 0.4s var(--spring-soft), background 0.4s;
+}
+.tp.mode-break .mode-ind {
+  background: #6a6666;
+}
+
+/* ---------- home settling back in after focus mode closes ---------- */
+.tp.home-in .tp-head {
+  animation: home-rise 0.7s 0.32s var(--out) both;
+}
+.tp.home-in .tp-mid {
+  animation: home-rise 0.75s 0.4s var(--out) both;
+}
+.tp.home-in .tp-foot {
+  animation: home-rise 0.75s 0.48s var(--out) both;
+}
+@keyframes home-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+}
+
+/* ---------- no ghosting: never cross-fade two layers of content ---------- */
+/* Focus content waits until the black screen has opened (and the breathe
+   screen has cleared) before it rises in. */
+.fs.in .fs-label {
+  animation-delay: 0.42s;
+}
+.fs.in .fs-time,
+.fs.in .fs-analog {
+  animation-delay: 0.5s;
+}
+.fs.in .fs-actions {
+  animation-delay: 0.6s;
+}
+/* Focus -> break: the break colour covers the focus content; the focus
+   content does not fade underneath it. It is hidden once covered. */
+.fs[data-kind='break'] .fs-f {
+  opacity: 1;
+  transform: none;
+  visibility: hidden;
+  transition: visibility 0s 1s;
+}
+/* Break -> focus: break content disappears at once, then the break colour
+   folds away, revealing the focus screen (no half-faded text). */
+.fsb-in {
+  transition: none;
+}
+.fs[data-kind='break'] .fsb-in {
+  transition: opacity 0.5s var(--ease) 0.45s, transform 0.8s var(--out) 0.45s;
+}
+.fs.celebrate[data-kind='break'] .fsb-in {
+  transition-delay: 2.8s;
+}
+/* Closing to home: a clean circular wipe, no fading text inside it. */
+.fs.closing .fs-f,
+.fs.closing .fsb-in,
+.fs.closing .fs-tools {
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
+.fs.closing .fs-tools {
+  opacity: 0;
+}
+
+/* tray stays out of the way during a phase change */
+.fs.tools-quiet .fs-tools {
+  opacity: 0 !important;
+  transition: none !important;
+  pointer-events: none !important;
+}
+
+/* ---------- breathe: a layer of the focus screen ---------- */
+.fs-br {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+.fs-br:empty {
+  display: none;
+}
+.fs[data-kind='breathe'] .fs-f {
+  visibility: hidden;
+}
+.fs[data-kind='breathe'] .fs-progress,
+.fs[data-kind='breathe'] .fs-tools {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+/* breathe -> focus: the flower folds away first, then the timer rises */
+.fs.rise .fs-label {
+  animation: fs-rise-again 0.8s 0.38s var(--out) both;
+}
+.fs.rise .fs-time,
+.fs.rise .fs-analog {
+  animation: fs-rise-again 0.9s 0.46s var(--out) both;
+}
+.fs.rise .fs-actions {
+  animation: fs-rise-again 0.9s 0.56s var(--out) both;
+}
+@keyframes fs-rise-again {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+/* today's tally on the break screen */
+.fsb-tally {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  margin-top: 14px;
+  font-size: 12.5px;
+  color: var(--b-dim);
+}
+.fsb-tally:empty {
+  display: none;
+}
+.fsb-tally span {
+  display: flex;
+  gap: 5px;
+}
+.fsb-tally i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--b-track);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--b-ink) 18%, transparent);
+}
+.fsb-tally i.on {
+  background: var(--b-ring);
+  box-shadow: none;
+}
+
+/* Discard asks once before it acts */
+.fs-tools .danger.armed {
+  color: #ffb1a8;
+  background: rgba(255, 120, 110, 0.14);
+}
+/* breathe controls sit well above the tray's band */
+.breathe.embedded {
+  padding-bottom: 132px;
+}
+
+/* While focus mode is up, the home screen underneath ignores the mouse, so a
+   click can never fall through to the calendar or the timer controls. */
+.app.zen > .rail,
+.app.zen > .views {
+  pointer-events: none;
+}
+.fs.opened {
+  clip-path: none;
+}
+.fs.snap-clip {
+  transition: none;
+}
+
+/* ==========================================================================
+   Break screen, Pomofocus-inspired: a bright, calm colour, one card with the
+   time and a solid button, and nothing else competing for attention.
+   ========================================================================== */
+.fs[data-theme='blue'],
+.fs[data-theme='teal'],
+.fs[data-theme='green'],
+.fs[data-theme='purple'],
+.fs[data-theme='rose'] {
+  --b-ink: #ffffff;
+  --b-dim: rgba(255, 255, 255, 0.78);
+  --b-track: rgba(255, 255, 255, 0.18);
+  --b-ring: #ffffff;
+  --b-btn: #ffffff;
+  --b-chip: rgba(255, 255, 255, 0.13);
+  --b-chip-on: rgba(255, 255, 255, 0.95);
+}
+.fs[data-theme='blue'] { --b-bg: #4a82ad; --b-btn-ink: #3f749d; }
+.fs[data-theme='teal'] { --b-bg: #3f8f93; --b-btn-ink: #347f83; }
+.fs[data-theme='green'] { --b-bg: #4f9473; --b-btn-ink: #3f8061; }
+.fs[data-theme='purple'] { --b-bg: #7c71b8; --b-btn-ink: #6a5fa8; }
+.fs[data-theme='rose'] { --b-bg: #c06f78; --b-btn-ink: #ad5d66; }
+/* Cozy look: the same hues, a touch softer */
+:root[data-look='cozy'] .fs[data-theme='blue'] { --b-bg: #5487ad; }
+:root[data-look='cozy'] .fs[data-theme='teal'] { --b-bg: #4a9195; }
+:root[data-look='cozy'] .fs[data-theme='green'] { --b-bg: #5a9479; }
+:root[data-look='cozy'] .fs[data-theme='purple'] { --b-bg: #8277b5; }
+:root[data-look='cozy'] .fs[data-theme='rose'] { --b-bg: #bd7780; }
+
+.fs .fsb-in {
+  padding-bottom: 70px;
+}
+.fs .fsb-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 440px;
+  padding: 26px 56px 36px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.1);
+}
+.fs[data-theme='light'] .fsb-card {
+  background: rgba(0, 0, 0, 0.04);
+}
+.fs .fsb-kind {
+  padding: 6px 14px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.14);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--b-ink);
+}
+.fs .fsb-ring {
+  width: auto;
+  height: auto;
+  margin: 18px 0 30px;
+}
+.fs .fsb-ring svg {
+  display: none;
+}
+.fs .fsb-time,
+.fs[data-phase='breakOver'] .fsb-time {
+  position: static;
+  display: block;
+  font-size: 112px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+.fs .fs-b .fsb-btn,
+.fs .fs-b .fsb-btn:hover {
+  margin: 0;
+  width: 210px;
+  height: 56px;
+  justify-content: center;
+  border-radius: 6px;
+  background: var(--b-btn);
+  color: var(--b-btn-ink);
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.16);
+  transform: none;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.fs .fs-b .fsb-btn:active {
+  transform: translateY(6px);
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0.16);
+}
+.fs[data-phase] .fs-b .fsb-btn {
+  animation: none;
+}
+.fs .fsb-next {
+  margin-top: 22px;
+  font-size: 15px;
+  color: var(--b-dim);
+}
+.fs .fs-mood {
+  margin-top: 14px;
+}
+
+/* Taupe break colour */
+.fs[data-theme='cozy'] {
+  --b-bg: #4a403e;
+}

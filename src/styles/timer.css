@@ -1,0 +1,543 @@
+/* ---------- timer pane ---------- */
+.tp {
+  --bg: color-mix(in srgb, var(--c) 5%, #302d2d);
+  --disc: color-mix(in srgb, var(--c) 21%, #332d2d);
+  --wedge: color-mix(in srgb, var(--c) 92%, #3a2a2a);
+  --hand: color-mix(in srgb, var(--c) 62%, #ff1c1c);
+  --tick-q: #ebe7e7;
+  --tick-f: #d3cece;
+  --tick: #8d8889;
+  --ctrl-bg: color-mix(in srgb, var(--c) 30%, #352f2f);
+  --ctrl-fg: color-mix(in srgb, var(--c) 85%, #fff);
+  --pill-bg: color-mix(in srgb, var(--c) 9%, #2c2828);
+  --pill-line: color-mix(in srgb, var(--c) 42%, transparent);
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 34px 28px 30px;
+  background: var(--bg);
+  border-right: 1px solid #262323;
+  transition: background-color 0.6s var(--ease);
+  min-height: 0;
+}
+.tp.mode-break {
+  --disc: #3e3a3a;
+  --wedge: #6d696a;
+  --hand: #9b9797;
+}
+.tp[data-phase='focusOver'] {
+  --bg: color-mix(in srgb, var(--c) 60%, #c81e1f);
+  --disc: rgba(255, 255, 255, 0.1);
+  --wedge: rgba(255, 255, 255, 0.72);
+  --hand: #f7dede;
+  --tick-q: #fff;
+  --tick-f: #fff;
+  --tick: rgba(255, 255, 255, 0.75);
+  --ctrl-bg: rgba(255, 255, 255, 0.3);
+  --ctrl-fg: #fff;
+  --pill-bg: rgba(255, 255, 255, 0.16);
+  --pill-line: rgba(255, 255, 255, 0.35);
+  border-right-color: transparent;
+}
+.tp[data-phase='break'] {
+  --bg: #505050;
+  --ctrl-bg: rgba(255, 255, 255, 0.3);
+  --ctrl-fg: #fff;
+  --pill-bg: rgba(0, 0, 0, 0.14);
+  border-right-color: #464646;
+}
+.tp[data-phase='breakOver'] {
+  --bg: #3c3c3c;
+  --ctrl-bg: rgba(255, 255, 255, 0.22);
+  --ctrl-fg: #fff;
+  --pill-bg: rgba(0, 0, 0, 0.14);
+}
+
+/* visibility per phase */
+.tp .tp-next,
+.tp .tp-title,
+.tp .tp-edit,
+.tp .tp-adjust .adj,
+.tp .tp-breaklabel,
+.tp .ctrls,
+.tp .tp-tune {
+  display: none;
+}
+.tp[data-phase='idle'] .tp-title,
+.tp[data-phase='idle'] .tp-edit {
+  display: none;
+}
+.tp:not([data-phase='idle']) .dots,
+.tp:not([data-phase='idle']) .tp-q,
+.tp:not([data-phase='idle']) .intent-wrap,
+.tp:not([data-phase='idle']) .start-btn {
+  display: none;
+}
+.tp:not([data-phase='idle']) .tp-title,
+.tp:not([data-phase='idle']) .tp-edit,
+.tp:not([data-phase='idle']) .tp-tune {
+  display: block;
+}
+.tp:not([data-phase='idle']) .ctrls,
+.tp:not([data-phase='idle']) .tp-adjust .adj {
+  display: grid;
+}
+.tp[data-phase^='break'] .tp-next,
+.tp[data-phase^='break'] .tp-breaklabel {
+  display: block;
+}
+.tp[data-phase^='break'] .dial-host {
+  display: none;
+}
+
+.tp-tune {
+  position: absolute;
+  top: 30px;
+  right: 22px;
+  width: 26px;
+  height: 26px;
+  font-size: 15px;
+}
+.tp[data-phase='focusOver'] .tp-tune {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.7);
+  color: #fff;
+}
+.tp[data-phase^='break'] .tp-tune {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.tp-head {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  z-index: 3;
+}
+.dots {
+  display: flex;
+  gap: 5px;
+  height: 7px;
+  margin: 2px 0 9px;
+}
+.dots i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #595555;
+  transition: background 0.4s, transform 0.4s var(--spring);
+}
+.dots i.on {
+  background: color-mix(in srgb, var(--c) 92%, #fff);
+}
+.tp-q {
+  font-size: 21px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: #efebeb;
+  margin-bottom: 8px;
+}
+.tp-next {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #f2f2f2;
+  margin-bottom: 8px;
+}
+.cat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 23px;
+  padding: 0 9px 0 11px;
+  border-radius: 999px;
+  background: var(--pill-bg);
+  box-shadow: inset 0 0 0 1px var(--pill-line);
+  font-size: 11px;
+  font-weight: 700;
+  color: #ece8e8;
+  transition: background 0.15s, transform 0.12s;
+  max-width: 220px;
+}
+.cat-pill .cat-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cat-pill:hover {
+  filter: brightness(1.15);
+}
+.cat-pill:active {
+  transform: scale(0.97);
+}
+.cat-pill .ic {
+  font-size: 11px;
+  color: #a7a2a2;
+}
+.tp[data-phase='focusOver'] .cat-pill .dot {
+  background: #fff;
+}
+.tp[data-phase='focusOver'] .cat-pill .ic {
+  color: #fff;
+}
+
+.intent-wrap {
+  position: relative;
+  width: 100%;
+  margin-top: 16px;
+}
+.intent {
+  width: 100%;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  padding: 0 32px 0 12px;
+  background: color-mix(in srgb, var(--c) 4%, #3a3636);
+  font-size: 13px;
+  color: #f3f0f0;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+.intent:focus {
+  background: color-mix(in srgb, var(--c) 5%, #3f3a3a);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+.intent-clear {
+  position: absolute;
+  right: 7px;
+  top: 7px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #5a5555;
+  color: #2e2b2b;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+}
+.suggest {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 36px;
+  background: #3a3434;
+  border-radius: 10px;
+  padding: 4px;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition: opacity 0.14s, transform 0.18s var(--ease);
+}
+.suggest.open {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+.sug {
+  width: 100%;
+  height: 31px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 8px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  color: #ece8e8;
+  text-align: left;
+}
+.sug span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sug:hover,
+.sug.active {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.tp-title {
+  font-size: 20px;
+  font-weight: 500;
+  margin-top: 10px;
+  color: #f4f1f1;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.tp-title.untitled {
+  color: rgba(255, 255, 255, 0.7);
+}
+.tp-edit {
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.72);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  margin-top: 5px;
+}
+.tp-edit:hover {
+  color: #fff;
+}
+
+.tp-mid {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 0;
+  padding-bottom: 6px;
+}
+.tp-breaklabel {
+  font-size: 17px;
+  color: #e6e6e6;
+  margin-bottom: 4px;
+}
+.dial-host {
+  width: 228px;
+  height: 228px;
+  flex: none;
+}
+@media (max-height: 0px) {
+  .dial-host {
+    width: 170px;
+    height: 170px;
+  }
+}
+.tp-time {
+  margin-top: 10px;
+  font-size: 19px;
+  font-weight: 400;
+  color: #ddd9d9;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+.tp[data-phase='focusOver'] .tp-time {
+  color: #fff;
+}
+.tp[data-phase^='break'] .tp-time {
+  margin-top: 0;
+  font-size: 50px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0;
+}
+.tp-adjust {
+  margin-top: 7px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.tp[data-phase^='break'] .tp-adjust {
+  margin-top: 12px;
+}
+.adj {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.22);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #efefef;
+  transition: background 0.15s, transform 0.12s var(--ease);
+}
+.adj:hover {
+  background: rgba(0, 0, 0, 0.32);
+}
+.adj:active {
+  transform: scale(0.9);
+}
+.range-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 11px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.42);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #e9e6e6;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.range-pill .ic {
+  font-size: 10px;
+  opacity: 0.8;
+}
+.range-pill:disabled .ic {
+  display: none;
+}
+.range-pill:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.tp[data-phase='focusOver'] .range-pill {
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.8);
+  color: #fff;
+}
+.tp[data-phase='focusOver'] .adj {
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.tp-foot {
+  height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.start-btn {
+  width: 174px;
+  height: 34px;
+  border-radius: 999px;
+  background: var(--accent);
+  background: color-mix(in srgb, var(--c) 72%, #cc2a2b);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  box-shadow: 0 6px 22px color-mix(in srgb, var(--c) 28%, transparent);
+  transition: transform 0.15s var(--ease), filter 0.15s, background 0.3s, box-shadow 0.3s;
+}
+.start-btn:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+.start-btn:active {
+  transform: scale(0.97);
+}
+.tp.mode-break .start-btn {
+  background: #5d5959;
+  box-shadow: none;
+}
+.ctrls {
+  grid-auto-flow: column;
+  align-items: center;
+  gap: 12px;
+}
+.ctrl {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--ctrl-bg);
+  color: var(--ctrl-fg);
+  font-size: 20px;
+  transition: transform 0.15s var(--ease), filter 0.15s, background 0.4s;
+}
+.ctrl.c-main {
+  width: 56px;
+  height: 56px;
+  font-size: 23px;
+}
+.ctrl:hover {
+  filter: brightness(1.15);
+}
+.ctrl:active {
+  transform: scale(0.92);
+}
+
+/* ---------- dial ---------- */
+.dial {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+  touch-action: none;
+}
+.dial.interactive {
+  cursor: grab;
+}
+.dial.dragging {
+  cursor: grabbing;
+}
+.dial .tk {
+  stroke: var(--tick);
+  stroke-width: 1.15;
+  stroke-linecap: round;
+}
+.dial .tk.f {
+  stroke: var(--tick-f);
+  stroke-width: 1.9;
+}
+.dial .tk.q {
+  stroke: var(--tick-q);
+  stroke-width: 2.3;
+}
+.dial .disc {
+  fill: var(--disc);
+  transition: fill 0.5s;
+}
+.dial .wedge {
+  fill: var(--wedge);
+  transition: fill 0.5s;
+}
+.dial .hand {
+  transform-origin: 100px 100px;
+}
+.dial .hand line {
+  stroke: var(--hand);
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  transition: stroke 0.5s;
+}
+.dial .hub {
+  fill: url(#hubg);
+}
+.dial .hub-ring {
+  fill: none;
+  stroke: rgba(0, 0, 0, 0.18);
+  stroke-width: 1;
+}
+.dial .hit {
+  fill: transparent;
+}
+.dial.interactive:hover .hub {
+  filter: brightness(1.04);
+}
+.tp.paused .dial .disc,
+.tp.paused .dial .wedge,
+.tp.paused .dial .hand {
+  opacity: 0.45;
+  transition: opacity 0.3s;
+}
+.tp.paused .tp-time {
+  animation: blink 1.6s ease-in-out infinite;
+}
+@keyframes blink {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* laps past one hour */
+.dial .lap {
+  fill: color-mix(in srgb, var(--wedge) 55%, var(--disc));
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.dial.lapped .lap {
+  opacity: 1;
+}
+.dial .pips circle {
+  fill: rgba(255, 255, 255, 0.85);
+}
+/* no box when dragging; a soft ring only for keyboard focus */
+.dial:focus,
+.dial:focus-visible {
+  outline: none;
+}
+.dial:focus-visible:not(.dragging) .disc {
+  stroke: rgba(255, 255, 255, 0.35);
+  stroke-width: 1.5;
+}
